@@ -382,7 +382,7 @@ mark 是在读取时，做一个标记，即使 position 改变，只要调用 r
 > }
 > ```
 >
-> - `flip`方法将`limit`置位`position`，然后将`position`置位0
+> - `flip`方法将`limit`置为`position`，然后将`position`置为0
 >
 > ```java
 > public final Buffer flip() {
@@ -973,7 +973,7 @@ public static void main(String[] args) throws IOException {
     ssc.configureBlocking(false);
     
     // 2. 建立 selector 和 channel 的联系（注册）
-    // SelectionKey 就是将来事件发生后，通过它可以知道是什么事件和哪个channel的事件，参数0表示不关注任何时间
+    // SelectionKey 就是将来事件发生后，通过它可以知道是什么事件和哪个channel的事件，参数0表示不关注任何事件
     SelectionKey sscKey = ssc.register(selector, 0, null);
     // sscKey 只关注 accept 事件
     sscKey.interestOps(SelectionKey.OP_ACCEPT);
@@ -1728,7 +1728,7 @@ public class HelloServer {
             .group(new NioEventLoopGroup())
             // 3. 选择 服务器的 ServerSocketChannel 实现
             .channel(NioServerSocketChannel.class) 
-            // 4. boss 负责处理连接 worker(child) 负责处理读写，决定了 worker(child) 能执行哪些操作（handler）
+            // 4. boss 负责处理连接，worker(child) 负责处理读写，决定了 worker(child) 能执行哪些操作（handler）
             .childHandler(
                 // 5. channel 代表和客户端进行数据读写的通道 Initializer 初始化，负责添加别的 handler
                 new ChannelInitializer<NioSocketChannel>() {
@@ -1758,7 +1758,7 @@ public class HelloServer {
 
 2、创建 `NioEventLoopGroup`
 
-3、选择客户 Socket 实现类，`NioSocketChannel` 表示基于 NIO 的客户端实现
+3、选择客户端 `Socket` 实现类，`NioSocketChannel` 表示基于 NIO 的客户端实现
 
 4、添加 `SocketChannel `的处理器，`ChannelInitializer `处理器（仅执行一次），作用是等客户端 `SocketChannel `连接建立后，执行` initChannel `以便添加更多的处理器
 
@@ -1847,7 +1847,7 @@ private static final int DEFAULT_EVENT_LOOP_THREADS = Math.max(1, SystemProperty
 
 3、`NioEventLoopGroup`可以执行io事件、普通任务、定时任务；`DefaultEventLoopGroup`不能执行io事件
 
-4、`EventLoopGroup`中是一组`EventLoop`，`EventLoop`继承了线程池，因此可以使用线程池的方法
+4、`EventLoopGroup`是一组`EventLoop`，`EventLoop`继承了线程池，因此可以使用线程池的方法
 
 ```java
 @Slf4j
@@ -2477,7 +2477,7 @@ new Bootstrap()
 
 `ByteBuf`是对`BytrBuffer`的封装。
 
-- `NIO`中的`BytrBuffer`创建构大小是固定的，不能改变。而`Netty`中的`ByteBuf`的大小可以自动扩容。默认大小为256，最大为`Integer`的最大值
+- `NIO`中`ByteBuffer`创建的大小是固定的，不能改变。而`Netty`中`ByteBuf`的大小可以自动扩容。默认大小为256，最大为`Integer`的最大值
 - 可以重用池中 `ByteBuf` 实例，更节约内存，减少内存溢出的可能
 - 读写指针分离，不需要像 `ByteBuffer` 一样切换读写模式
 - 支持链式调用
@@ -3972,7 +3972,7 @@ public class TestConnectionTimeout {
 
 2、如果超时时间大于0，由于`eventLoop`就是一个线程，因此执行一个定时任务，在`connectTimeoutMillis`秒后执行，抛出超时异常
 
-3、其中`connectPromise`就是客户端代码中拿到的`future`对象，`ChannelPromise`是`ChannelFuture`的子类，这里是唤醒`future`对象，因为客户端代码中执行了`future.sync()`，因此这里的`sync`方案就会返回异常信息
+3、其中`connectPromise`就是客户端代码中拿到的`future`对象，`ChannelPromise`是`ChannelFuture`的子类，这里是唤醒`future`对象，因为客户端代码中执行了`future.sync()`，因此这里的`sync`方法就会返回异常信息
 
 4、如果连接成功，定时任务会被取消
 

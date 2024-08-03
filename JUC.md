@@ -24,6 +24,7 @@ t1.start();
 
 - Thread 代表线程 
 - Runnable 可运行的任务（线程要执行的代码）
+- Thread中不能接受Callable对象
 
 ```java
 // 创建任务对象
@@ -239,22 +240,22 @@ public static void main(String[] args) throws ExecutionException, InterruptedExc
 | 方法               | static   | 说明                                                         | 注意                                                         |
 | ------------------ | -------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | `start()`          |          | 启动一个新线程，在新的线程 运行 run 方法 中的代码            | `start` 方法只是让线程进入就绪，里面代码不一定立刻 运行（CPU 的时间片还没分给它）。每个线程对象的 `start`方法只能调用一次，如果调用了多次会出现 `IllegalThreadStateException` |
-| `run()`            |          | 新线程启动后会 调用的方法                                    | 如果在构造 Thread 对象时传递了 Runnable 参数，则 线程启动后会调用 Runnable 中的 run 方法，否则默 认不执行任何操作。但可以创建 Thread 的子类对象， 来覆盖默认行为 |
+| `run()`            |          | 新线程启动后会调用的方法                                     | 如果在构造 Thread 对象时传递了 Runnable 参数，则 线程启动后会调用 Runnable 中的 run 方法，否则默 认不执行任何操作。但可以创建 Thread 的子类对象， 来覆盖默认行为 |
 | `join()`           |          | 等待线程运行结束，即插入线程，这个线程执行完毕，才会继续执行当前线程 |                                                              |
 | `join(long n)  `   |          | 等待线程运行结束, 最多等待 n 毫秒                            |                                                              |
-| `getId()`          |          | 获取线程长整型 的 id                                         | id 唯一                                                      |
+| `getId()`          |          | 获取线程长整型的 id                                          | id 唯一                                                      |
 | `getName()`        |          | 获取线程名                                                   |                                                              |
 | `setName(String)`  |          | 修改线程名                                                   |                                                              |
 | `getPriority()`    |          | 获取线程优先级                                               |                                                              |
 | `setPriority(int)` |          | 修改线程优先级                                               | java中规定线程优先级是1~10 的整数，较大的优先级 能提高该线程被 CPU 调度的机率 |
 | `getState()`       |          | 获取线程状态                                                 | Java 中线程状态是用 6 个 enum 表示，分别为：` NEW`, `RUNNABLE, BLOCKED`, `WAITING`,  `TIMED_WAITING`, `TERMINATED` |
-| `isInterrupted()`  |          | 判断是否被打断                                               | 不会清除 打断标记                                            |
+| `isInterrupted()`  |          | 判断是否被打断                                               | 不会清除打断标记                                             |
 | `isAlive()`        |          | 线程是否存活 （还没有运行完 毕）                             |                                                              |
-| `interrupt()`      |          | 打断线程                                                     | 如果被打断线程正在 `sleep`，`wait`，`join` 会导致被打断 的线程抛出 `InterruptedException，`并清除打断标 记 ；如果打断的是正在运行的线程，则会设置 打断标 记 ；park 的线程被打断，也会设置 打断标记 |
-| `interrupted()`    | `static` | 判断当前线程是 否被打断                                      | 会清除 打断标记                                              |
-| `currentThread()`  | `static` | 获取当前正在执 行的线程                                      |                                                              |
-| `sleep(long n)`    | `static` | 让当前执行的线 程休眠n毫秒， 休眠时让出 cpu  的时间片给其它 线程 |                                                              |
-| `yield()`          | `static` | 提示线程调度器 让出当前线程对 CPU的使用                      | 主要是为了测试和调试                                         |
+| `interrupt()`      |          | 打断线程                                                     | 如果被打断线程正在 `sleep`，`wait`，`join` 会导致被打断的线程抛出 `InterruptedException，`并清除打断标记 ；如果打断的是正在运行的线程，则会设置打断标记 ；park 的线程被打断，也会设置打断标记 |
+| `interrupted()`    | `static` | 判断当前线程是否被打断                                       | 会清除打断标记                                               |
+| `currentThread()`  | `static` | 获取当前正在执行的线程                                       |                                                              |
+| `sleep(long n)`    | `static` | 让当前执行的线程休眠n毫秒， 休眠时让出 cpu  的时间片给其它 线程 |                                                              |
+| `yield()`          | `static` | 提示线程调度器让出当前线程对 CPU的使用                       | 主要是为了测试和调试                                         |
 
 
 
@@ -298,7 +299,7 @@ public static void main(String[] args) throws ExecutionException, InterruptedExc
 
 #### 2.4 join
 
-`public final void join()`：等待这个线程结束
+`public final synchronized void join()`：等待这个线程结束
 
 原理：调用者轮询检查线程 alive 状态，`t1.join()` 等价于：
 
@@ -883,7 +884,7 @@ synchronized(this) {
 
 - 但局部变量引用的对象则未必 
 
-  - 如果该对象没有逃离方法的作用访问，它是线程安全的 
+  - 如果该对象没有逃离方法的作用范围，它是线程安全的 
 
   - 如果该对象逃离方法的作用范围，需要考虑线程安全
 
@@ -1076,6 +1077,138 @@ public void foo(SimpleDateFormat sdf) {
 
 
 
+**`SimpleDateFormat`线程不安全的原因**
+
+> `SimpleDateFormat`继承自`DateFormat`，而`DateFormat`内部有一个`Calendar`对象，是被`protected`修饰的，即子类`SimpleDateFormat`可以使用
+
+```java
+public class SimpleDateFormat extends DateFormat {
+
+    // the official serial version ID which says cryptically
+    // which version we're compatible with
+    static final long serialVersionUID = 4774881970558875024L;
+
+    // the internal serial version which says which version was written
+    // - 0 (default) for version up to JDK 1.1.3
+    // - 1 for version from JDK 1.1.4, which includes a new field
+    static final int currentSerialVersion = 1;
+	...    
+}
+
+public abstract class DateFormat extends Format {
+
+    /**
+     * The {@link Calendar} instance used for calculating the date-time fields
+     * and the instant of time. This field is used for both formatting and
+     * parsing.
+     *
+     * <p>Subclasses should initialize this field to a {@link Calendar}
+     * appropriate for the {@link Locale} associated with this
+     * <code>DateFormat</code>.
+     * @serial
+     */
+    protected Calendar calendar;
+}
+```
+
+
+
+**1、format方法线程不安全**
+
+> `format`方法源码如下，其中`calendar.setTime(date)`这行代码会使用成员变量`calendar`来设置时间，此时就会导致线程不安全。如果线程1 set后，让出cpu，线程2继续来执行，线程2重新set，然后线程1拿到的就是错误的数据
+
+```java
+private StringBuffer format(Date date, StringBuffer toAppendTo,
+                            FieldDelegate delegate) {
+    // Convert input date to time field list
+    calendar.setTime(date);
+
+    boolean useDateFormatSymbols = useDateFormatSymbols();
+
+    for (int i = 0; i < compiledPattern.length; ) {
+        int tag = compiledPattern[i] >>> 8;
+        int count = compiledPattern[i++] & 0xff;
+        if (count == 255) {
+            count = compiledPattern[i++] << 16;
+            count |= compiledPattern[i++];
+        }
+
+        switch (tag) {
+        case TAG_QUOTE_ASCII_CHAR:
+            toAppendTo.append((char)count);
+            break;
+
+        case TAG_QUOTE_CHARS:
+            toAppendTo.append(compiledPattern, i, count);
+            i += count;
+            break;
+
+        default:
+            subFormat(tag, count, delegate, toAppendTo, useDateFormatSymbols);
+            break;
+        }
+    }
+    return toAppendTo;
+}
+```
+
+
+
+**2、parse方法线程不安全**
+
+> 以下是`parse`方法部分源码，其中`establish`方法中，会执行`cal.clear()`，使用的也是成员变量`calendar`，因此多线程环境下也会有线程安全问题
+
+```java
+@Override
+public Date parse(String text, ParsePosition pos)
+{
+    checkNegativeNumberExpression();
+
+    int start = pos.index;
+    int oldStart = start;
+    int textLength = text.length();
+
+    boolean[] ambiguousYear = {false};
+
+    ...
+    Date parsedDate;
+        try {
+            parsedDate = calb.establish(calendar).getTime();
+            // If the year value is ambiguous,
+            // then the two-digit year == the default start year
+            if (ambiguousYear[0]) {
+                if (parsedDate.before(defaultCenturyStart)) {
+                    parsedDate = calb.addYear(100).establish(calendar).getTime();
+                }
+            }
+        }
+	...
+
+        return parsedDate;
+}
+
+Calendar establish(Calendar cal) {
+	...
+
+    cal.clear();
+    // Set the fields from the min stamp to the max stamp so that
+    // the field resolution works in the Calendar.
+    for (int stamp = MINIMUM_USER_STAMP; stamp < nextStamp; stamp++) {
+        for (int index = 0; index <= maxFieldIndex; index++) {
+            if (field[index] == stamp) {
+                cal.set(index, field[MAX_FIELD + index]);
+                break;
+            }
+        }
+    }
+    ...
+    return cal;
+}
+
+```
+
+
+
 
 
 **案例三**
@@ -1176,7 +1309,7 @@ Java对象由三部分组成
 
 <img src="https://cdn.jsdelivr.net/gh/xrj123123/Images/202401141725133.png" style="zoom:80%;" />
 
-- 对象的hashCode占31位，重写类的hashCode方法返回int类型，只有在无锁情况下，是在有调用的情况下会计算该值并写到对象头中，其他情况该值是空的。
+- 对象的hashCode占31位，重写类的hashCode方法返回int类型，只有在无锁情况下，在有调用的情况下会计算该值并写到对象头中，其他情况该值是空的。
 - 分代年龄占4位，最大值也就是15，在GC中，当survivor区中对象复制一次，年龄加1，默认是到15之后会移动到老年代。
 - 是否偏向锁占1位，无锁和偏向锁的最后两位都是01，使用这一位来标识区分是无锁还是偏向锁。
 - 锁标志位占2位，锁状态标记位，同`是否偏向锁标志位`标识对象处于什么锁状态。
@@ -1366,9 +1499,9 @@ public static void method2() {
 
 <img src="https://cdn.jsdelivr.net/gh/xrj123123/Images/202401152232825.png" style="zoom:80%;" />
 
-- 5、当退出` synchronized` 代码块（解锁时）如果有取值为 null 的锁记录，表示有重入，这时重置锁记录，表示重入计数减一
+5、当退出` synchronized` 代码块（解锁时）如果有取值为 null 的锁记录，表示有重入，这时重置锁记录，表示重入计数减一
 
-  <img src="https://cdn.jsdelivr.net/gh/xrj123123/Images/202401152235598.png" style="zoom:80%;" />
+<img src="https://cdn.jsdelivr.net/gh/xrj123123/Images/202401152235598.png" style="zoom:80%;" />
 
 6、当退出 `synchronized` 代码块（解锁时）锁记录的值不为 null，这时使用 cas 将 `Mark Word` 的值恢复给对象头 
 
@@ -1501,7 +1634,6 @@ public static void m3() {
 利用 jol 第三方工具来查看对象头信息
 
 ```java
-
 public static void main(String[] args) throws IOException {
     Dog d = new Dog();
     ClassLayout classLayout = ClassLayout.parseInstance(d);
@@ -2018,8 +2150,7 @@ public final void join() throws InterruptedException {
     join(0);
 }
 
-public final synchronized void join(long millis)
-throws InterruptedException {
+public final synchronized void join(long millis) throws InterruptedException {
     // 记录当前时间
     long base = System.currentTimeMillis();
     long now = 0;
@@ -2275,9 +2406,9 @@ LockSupport.unpark(t1);
 
 - 调用`obj.wait() `方法时，t 线程从 RUNNABLE --> WAITING 
 - 调用` obj.notify() `， `obj.notifyAll() `， `t.interrupt()` 时 
-
-- - 竞争锁成功，t 线程从WAITING --> RUNNABLE 
+  - 竞争锁成功，t 线程从WAITING --> RUNNABLE 
   - 竞争锁失败，t 线程从WAITING --> BLOCKED
+
 
 
 
@@ -2351,7 +2482,7 @@ t 线程用 `synchronized(obj) `获取了对象锁后
 
 ### 9、死锁
 
-- `t1 线程` 获得 `A对象` 锁，接下来想获取 `B对` 的锁
+- `t1 线程` 获得 `A对象` 锁，接下来想获取 `B对象` 的锁
 
 - `t2 线程` 获得 `B对象` 锁，接下来想获取 `A对象` 的锁
 
@@ -2816,7 +2947,6 @@ new Thread(() -> {
 **lock条件变量**
 
 ```java
-
 class AwaitSignal extends ReentrantLock{
     private int loopNumber;
 
@@ -2882,14 +3012,6 @@ public static void main(String[] args) throws InterruptedException {
 **Park Unpark实现**
 
 ```java
-package com.tobestronger.n4._4_13.JiaoTiShuChu;
-
-
-import lombok.extern.slf4j.Slf4j;
-
-import java.util.concurrent.locks.LockSupport;
-
-@Slf4j(topic = "c.JiaoTiShuChuParkUnpark")
 public class JiaoTiShuChuParkUnpark {
 
     static Thread t1;
@@ -3188,7 +3310,7 @@ boolean ready = false;
 
 // 线程1 执行此方法
 public void actor1(I_Result r) {
-    if(ready) {
+    if (ready) {
         r.r1 = num + num;
     } else {
         r.r1 = 1;
@@ -3219,7 +3341,7 @@ volatile boolean ready = false;
 
 // 线程1 执行此方法
 public void actor1(I_Result r) {
-    if(ready) {
+    if (ready) {
         r.r1 = num + num;
     } else {
         r.r1 = 1;
@@ -4407,7 +4529,6 @@ public class UnsafeAccessor {
 
 
 ```java
-
 import lombok.Data;
 import sun.misc.Unsafe;
 
@@ -4942,7 +5063,7 @@ public static void main(String[] args) {
 
 #### 4.2 submit
 
-> 1、`submit`方法如果接收`Callable`参数，执行后是有返回值的，返回值就是`Callable`接口中`call`方法的返回值【接收`Runnable`类型任务，无返回值】
+> 1、`submit`方法如果接收`Callable`参数，执行后是有返回值的，返回值就是`Callable`接口中`call`方法的返回值【接收`Runnable`类型任务，无返回值，通过`future.get`返回的是null】
 >
 > 2、返回值是`Future`类型，采用的是保护性暂停模式，即主线程通过`result.get()`获取结果时，获取不到，就调用`wait`等待，等任务执行完毕，在将主线程唤醒
 
@@ -6098,7 +6219,7 @@ public final boolean hasQueuedPredecessors() {
 
 调用`condition.await()`方法
 
-- 调用`addConditionWaiter`将当前线程创建一个节点，加入到条件变量的等待对列中
+- 调用`addConditionWaiter`将当前线程创建一个节点，加入到条件变量的等待队列中
 - 通过`fullyRelease`方法释放锁，唤醒AQS队列中第一个线程
 - 当前线程被`park`阻塞
 - 如果线程退出等待队列后，会再次会去竞争锁
@@ -6759,8 +6880,6 @@ lock.unlockWrite(stamp);
 
 
 
-
-
 **示例**
 
 ```java
@@ -6934,7 +7053,7 @@ Sync(int permits) {
 
 
 
-##### 加锁
+#### 3.2 加锁
 
 1、如果是非公平锁，执行`nonfairTryAcquireShared`方法
 
@@ -7019,7 +7138,7 @@ private void doAcquireSharedInterruptibly(int arg)
 
 
 
-##### 解锁
+#### 3.3 解锁
 
 1、`tryReleaseShared`方法释放锁，释放成功后，执行`doReleaseShared`方法
 
@@ -7877,8 +7996,6 @@ JDK7中的`ConcurrentHashMap`维护了一个 `segment` 数组，每个 `segment 
 
 - 优点：如果多个线程访问不同的 `segment`，实际是没有冲突的，与 jdk8 中是类似的 
 - 缺点：`Segments `数组默认大小为16，这个容量初始化指定后就不能改变了，并且不是懒惰初始化 
-
-
 
 
 

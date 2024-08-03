@@ -124,7 +124,7 @@
 
 - JDK1.8中，方法区的实现是元空间，使用的是本地内存
 
-  > JDK.18中方法区使用的是本地内存，即操作系统的内存，基本不会出现OOM，`java.lang.OutOfMemoryError: Metaspace`
+  > JD1.8中方法区使用的是本地内存，即操作系统的内存，基本不会出现OOM，`java.lang.OutOfMemoryError: Metaspace`
   >
   > 使用 `-XX:MaxMetaspaceSize=8m` 指定元空间大小
 
@@ -954,7 +954,7 @@ public class WeakReferenceTest {
 
 #### 4.1 标记清除
 
-先通过可达性分析算法标记处所有不需要回收的对象，然后将没有标记的对象回收掉。清除的时候，不是将这块内存释放掉，而是将这块内存的起始地址和结束地址记录在一个空闲列表里，下次分配内存时，直接使用这块内存就可以了。
+先通过可达性分析算法标记出所有不需要回收的对象，然后将没有标记的对象回收掉。清除的时候，不是将这块内存释放掉，而是将这块内存的起始地址和结束地址记录在一个空闲列表里，下次分配内存时，直接使用这块内存就可以了。
 
 ![](https://cdn.jsdelivr.net/gh/xrj123123/Images/202402052150584.png)
 
@@ -1468,7 +1468,7 @@ D:\JavaJDK1.8\bin\java  -XX:+PrintFlagsFinal -version | findstr "GC"
 
 **2、确定目标**
 
-根据目标时低延迟还是高吞吐量，选择合适的垃圾回收器。例如高吞吐量，就选择ParallelGC，低延迟就选择CMS，适中就选择G1
+根据目标是低延迟还是高吞吐量，选择合适的垃圾回收器。例如高吞吐量，就选择ParallelGC，低延迟就选择CMS，适中就选择G1
 
 
 
@@ -1494,7 +1494,7 @@ D:\JavaJDK1.8\bin\java  -XX:+PrintFlagsFinal -version | findstr "GC"
 新生代的特点
 
 - 所有的 new 操作分配内存是非常快的
-  - new一个对象时，这个对象会在Eden区分配，分配速度非常快，因为每个线程都会在Eden区中分配一块私有的区域，称为TLAB（`thread-lcoal allocation buffer`）。当new一个对象时，会先检查TLAB中内存是否充足，充足的话就在这块空间分配。因为对象内存分配也存在线程安全问题，所以也要做线程并发安全的保护，这是由JVM来做的。而TLAB就可以减少这种冲突，因为是每个线程私有的内存，所以不需要考虑并发安全问题。
+  - new一个对象时，这个对象会在Eden区分配，分配速度非常快，因为每个线程都会在Eden区中分配一块私有的区域，称为TLAB（`thread-lcoal allocation buffer`）。当new一个对象时，会先检查TLAB中内存是否充足，充足的话就在这块空间分配。因为对象内存分配也存在线程安全问题，所以也要做线程并发安全的保护，这是由JVM来做的。而TLAB就可以减少这种冲突，因为是每个线程私有的内存，所以不需要考虑并发安全问题。如果TLAB内存不够，就通过CAS+重试机制进行内存分配
 
 - 死亡对象回收零代价
   - 新生代发生垃圾回收时，这些垃圾回收器都是采用的复制算法，即把Eden区、s0区中存活的对象复制到s1中去，复制完，Eden、s0区内存就被释放出来，因此死亡对象回收代价为0
@@ -2207,7 +2207,7 @@ public class Code_15_TryCatchTest {
         int i = 0;
         try {
             i = 10;
-        }catch (Exception e) {
+        } catch (Exception e) {
             i = 20;
         }
     }
@@ -2248,9 +2248,9 @@ public class Code_16_MultipleCatchTest {
         int i = 0;
         try {
             i = 10;
-        }catch (ArithmeticException e) {
+        } catch (ArithmeticException e) {
             i = 20;
-        }catch (Exception e) {
+        } catch (Exception e) {
             i = 30;
         }
     }
@@ -2454,7 +2454,7 @@ Code:
          0: new           #2                  // class java/lang/Object
          3: dup // 复制一份栈顶，然后压入栈中。用于函数消耗
          4: invokespecial #1                  // Method java/lang/Object."<init>":()V
-         7: astore_1 // 将栈顶的对象地址方法 局部变量表中 1 中
+         7: astore_1 // 将栈顶的对象地址放到 局部变量表中 1 中
          8: aload_1 // 加载到操作数栈
          9: dup // 复制一份，放到操作数栈，用于加锁时消耗
         10: astore_2 // 将操作数栈顶元素弹出，暂存到局部变量表的 2 号槽位。这时操作数栈中有一份对象的引用

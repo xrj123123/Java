@@ -1879,7 +1879,7 @@ private static void test3() throws InterruptedException {
 [t2] - ===============> 
 [t2] - 0 00000000 00000000 00000000 00000000 00011111 11110011 11100000 00000101  // 原始轻量级锁偏向t1
 [t2] - 0 00000000 00000000 00000000 00000000 00100000 01011000 11110111 00000000  // t2获取锁，将锁升级为轻量级锁
-[t2] - 0 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000001  // 释放锁后，轻量级锁被撤销
+[t2] - 0 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000001  // 释放锁后，偏向锁被撤销
 ...
 [t2] - 18 00000000 00000000 00000000 00000000 00011111 11110011 11100000 00000101 
 [t2] - 18 00000000 00000000 00000000 00000000 00100000 01011000 11110111 00000000 
@@ -3464,9 +3464,9 @@ public final class Singleton {
     private static Singleton INSTANCE = null;
     
     public static Singleton getInstance() { 
-        if(INSTANCE == null) { // t2
+        if (INSTANCE == null) { // t2
             // 首次访问会同步，而之后的使用没有 synchronized
-            synchronized(Singleton.class) {
+            synchronized (Singleton.class) {
                 if (INSTANCE == null) { // t1
                     INSTANCE = new Singleton(); 
                 } 
@@ -3479,7 +3479,7 @@ public final class Singleton {
 
 
 
-多线程环境下，上述代码是有问题的，下边是上述代码中从`if(INSTANCE == null) `往后的字节码
+多线程环境下，上述代码是有问题的，下边是上述代码中从`if (INSTANCE == null) `往后的字节码
 
 > 0：获取静态变量`INSTANCE`
 >
@@ -4672,7 +4672,6 @@ public static Long valueOf(long l) {
 - `Integer`的默认范围是 -128~127 
   - 最小值不能变 
   - 但最大值可以通过调整虚拟机参数 `-Djava.lang.Integer.IntegerCache.high` 来改变 
-
 - `Boolean` 缓存了 `TRUE `和 `FALSE`
 
 

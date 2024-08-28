@@ -10786,7 +10786,7 @@ Redis支持8种不同策略来选择要删除的key
   * LRU（Least Recently Used），最少最近使用。用当前时间减去最后一次访问时间，这个值越大则淘汰优先级越高。
 
 * `allkeys-lfu`： 对全体key，基于LFU算法进行淘汰
-* `volatile-lfu`： 对设置了TTL的key，基于LFI算法进行淘汰
+* `volatile-lfu`： 对设置了TTL的key，基于LFU算法进行淘汰
   * LFU（Least Frequently Used），最少频率使用。会统计每个key的访问频率，值越小淘汰优先级越高。
 
 

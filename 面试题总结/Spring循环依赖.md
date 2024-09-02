@@ -156,3 +156,13 @@ public class B {
 
 
 
+
+
+### 3、spring中，bean加载前后执行一些逻辑
+
+1、使用`init-method`和`destory-method`方法，bean的类内部创建初始化和销毁方法，然后通过`init-method`和`destory-method`指定，这样创建bean对象时，就会执行这两个方法
+
+2、实现`InitializingBean`和`DisposableBean`接口，分别实现`afterPropertiesSet`和`destory`方法
+
+3、使用`@PostConstruct`和`@PreDestory`注解修饰类中的方法
+

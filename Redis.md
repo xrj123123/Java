@@ -9119,9 +9119,32 @@ ZipListEntry中的encoding编码分为字符串和整数两种：
 
 
 
+#### 1.6 listpack
+
+压缩列表连锁更新的问题，来源于它的结构设计，所以要想彻底解决这个问题，需要设计一个新的数据结构。`Redis `在5.0新设计一个数据结构叫`listpack`，目的是替代压缩列表
+
+- `listpack`中每个节点不再包含前一个节点的长度了，压缩列表每个节点正因为需要保存前一个节点的长度字段，就会有连锁更新的隐患。
+- `listpack`采用了压缩列表的很多优秀的设计，比如还是用一块连续的内存空间来紧凑地保存数据，并且为了节省内存的开销，`listpack`节点会采用不同的编码方式保存不同大小的数据。
+
+![](https://cdn.jsdelivr.net/gh/xrj123123/Images/202409022342178.png)
+
+`listpack`头包含两个属性，分别记录了`listpack`总字节数和元素数量，然后`listpack` 末尾也有个结尾标识。`listpack entry` 是`listpack`的节点。
+
+每个 `listpack`节点结构如下:
+
+![](https://cdn.jsdelivr.net/gh/xrj123123/Images/202409022343645.png)
+
+- `encoding`：定义该元素的编码类型，会对不同长度的整数和字符串进行编码
+- `data`：实际存放的数据
+- `len`：`encoding+data`的总长度
+
+可以看到，`listpack`没有压缩列表中**记录前一个节点长度**的字段了，`listpack` 只记录当前节点的长度，当我们向`listpack` 加入一个新元素的时候，不会影响其他节点的长度字段的变化，从而避免了压缩列表的连锁更新问题。
 
 
-#### 1.6 QuickList
+
+
+
+#### 1.7 QuickList
 
 > 1、ZipList虽然节省内存，但申请内存必须是连续空间，如果内存占用较多，申请内存效率很低。
 >
@@ -9225,7 +9248,7 @@ typedef struct quicklistNode {
 
 
 
-#### 1.7 SkipList
+#### 1.8 SkipList
 
 skipList（跳表）首先是链表，但与传统链表相比有几点差异：
 
@@ -9283,7 +9306,7 @@ typedef struct zskiplistNode {
 
 
 
-#### 1.8 RedisObject
+#### 1.9 RedisObject
 
 Redis中的任意数据类型的键和值都会被封装为一个`RedisObject`，也叫做Redis对象
 

@@ -7611,7 +7611,7 @@ public class HashMapSource {
 
 
 
-1、``HashMap map = new HashMap();`执行这句话，就创建一个`HashMap`，`loadFactor`初始化为0.75
+1、`HashMap map = new HashMap();`执行这句话，就创建一个`HashMap`，`loadFactor`初始化为0.75
 
 ![](https://cdn.jsdelivr.net/gh/xrj123123/Images/202303221922143.png)
 

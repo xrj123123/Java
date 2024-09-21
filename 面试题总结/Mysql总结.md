@@ -545,17 +545,108 @@ CREATE TABLE `staff` (
 
 
 
+### 6、深分页问题
+
+https://juejin.cn/post/7012016858379321358
 
 
 
+#### 6.1 为什么深分页会变慢？
+
+**表结构**
+
+```sql
+CREATE TABLE account (
+  id int(11) NOT NULL AUTO_INCREMENT COMMENT '主键Id',
+  name varchar(255) DEFAULT NULL COMMENT '账户名',
+  balance int(11) DEFAULT NULL COMMENT '余额',
+  create_time datetime NOT NULL COMMENT '创建时间',
+  update_time datetime NOT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (id),
+  KEY idx_name (name),
+  KEY idx_update_time (update_time) //索引
+) ENGINE=InnoDB AUTO_INCREMENT=1570068 DEFAULT CHARSET=utf8 ROW_FORMAT=REDUNDANT COMMENT='账户表';
+
+```
 
 
 
+**执行sql**
+
+```sql
+select id, name, balance from account where update_time> '2020-09-19' limit 100000, 10;
+```
 
 
 
+**sql执行流程**
+
+1、通过**二级索引**`idx_update_time`，过滤`update_time`条件，找到满足条件的记录ID。
+
+2、通过ID，回到**主键索引**，找到满足记录的行，然后取出展示的列（**回表**）
+
+3、扫描满足条件的100010行，然后扔掉前100000行，返回。
 
 
+
+**sql变慢的原因**
+
+- limit语句会先扫描`offset+n`行，然后再丢弃掉前offset行，返回后n行数据。也就是说`limit 100000,10`，就会扫描100010行，而`limit 0,10`，只扫描10行。
+
+- `limit 100000,10` 扫描更多的行数，也意味着**回表**更多的次数。
+
+
+
+#### 6.2 优化方案
+
+##### 6.2.1 子查询优化
+
+> 上边的SQL，回表了100010次，实际上，我们只需要10条数据，也就是我们只需要10次回表其实就够了。因此，我们可以通过**减少回表次数**来优化。
+>
+> 先通过子查询通过二级索引查询出对应的主键id，然后使用查询出的id直接通过主键索引查询，这样就避免了回表操作
+
+```sql
+select id, name, balance 
+	FROM account 
+	where id >= (
+        select a.id 
+        from account a 
+        where a.update_time >= '2020-09-19' 
+        limit 100000, 1) 
+    LIMIT 10;
+```
+
+
+
+##### 6.2.2 INNER JOIN 延迟关联
+
+> 延迟关联的优化思路，**跟子查询的优化思路其实是一样的**：都是把条件转移到主键索引树，然后减少回表。不同点是，延迟关联使用了`inner join`代替子查询
+
+```sql
+SELECT acct1.id, acct1.name, acct1.balance 
+	FROM account acct1 
+	INNER JOIN 
+		(SELECT a.id 
+            FROM account a 
+            WHERE a.update_time >= '2020-09-19' 
+            ORDER BY a.update_time 
+         	LIMIT 100000, 10) AS acct2 
+    on acct1.id = acct2.id;
+```
+
+
+
+##### 6.2.3 标签记录法
+
+limit 深分页问题的本质原因是：偏移量（offset）越大，mysql就会扫描越多的行，然后再抛弃掉。这样就导致查询性能的下降。
+
+**标签记录**，就是标记一下上次查询到哪一条了，下次再来查的时候，从该条开始往下扫描。
+
+假设上一次记录到100000，则SQL可以修改为
+
+```sql
+select id, name, balance FROM account where id > 100000 order by id limit 10;
+```
 
 
 
